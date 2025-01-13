@@ -156,6 +156,26 @@ func (i *IPAllocator) Next() (*netip.Addr, *netip.Addr, error) {
 	return ret4, ret6, nil
 }
 
+func (i *IPAllocator) UpdateUsedIP(node *types.Node, IP netip.Addr) bool {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	changed := false
+	if i.prefix4 != nil {
+		changed = true
+		i.usedIPs.Remove(*node.IPv4)
+	}
+
+	if i.prefix6 != nil {
+		changed = true
+		i.usedIPs.Remove(*node.IPv6)
+	}
+	i.usedIPs.Add(IP)
+
+	return changed
+
+}
+
 var ErrCouldNotAllocateIP = errors.New("failed to allocate IP")
 
 func (i *IPAllocator) nextLocked(prev netip.Addr, prefix *netip.Prefix) (*netip.Addr, error) {

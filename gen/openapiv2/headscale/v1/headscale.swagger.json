@@ -320,6 +320,53 @@
         ]
       }
     },
+    "/api/v1/node/{nodeId}/changeIPAddress/{newIp}": {
+      "put": {
+        "summary": "update IP",
+        "operationId": "HeadscaleService_ChangeIPAddress",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateIPAddressResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "newIp",
+            "description": "new IP address",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "tags": [
+          "HeadscaleService"
+        ]
+      }
+    },
     "/api/v1/node/{nodeId}/expire": {
       "post": {
         "operationId": "HeadscaleService_ExpireNode",
@@ -449,7 +496,15 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/HeadscaleServiceSetTagsBody"
+              "type": "object",
+              "properties": {
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         ],
@@ -488,7 +543,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/HeadscaleServiceMoveNodeBody"
+              "type": "object",
+              "properties": {
+                "user": {
+                  "type": "string"
+                }
+              }
             }
           }
         ],
@@ -903,25 +963,6 @@
     }
   },
   "definitions": {
-    "HeadscaleServiceMoveNodeBody": {
-      "type": "object",
-      "properties": {
-        "user": {
-          "type": "string"
-        }
-      }
-    },
-    "HeadscaleServiceSetTagsBody": {
-      "type": "object",
-      "properties": {
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -1438,6 +1479,14 @@
       }
     },
     "v1SetTagsResponse": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "$ref": "#/definitions/v1Node"
+        }
+      }
+    },
+    "v1UpdateIPAddressResponse": {
       "type": "object",
       "properties": {
         "node": {

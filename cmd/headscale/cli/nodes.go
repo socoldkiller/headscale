@@ -100,6 +100,73 @@ func init() {
 	nodeCmd.AddCommand(tagCmd)
 
 	nodeCmd.AddCommand(backfillNodeIPsCmd)
+
+	updateIPCmd.Flags().Uint64P("identifier", "i", 0, "Node identifier (ID)")
+	err = updateIPCmd.MarkFlagRequired("identifier")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	nodeCmd.AddCommand(updateIPCmd)
+}
+
+var updateIPCmd = &cobra.Command{
+	Use:   "ip ID NEW_IP",
+	Short: "Update a node's IP address",
+	Run: func(cmd *cobra.Command, args []string) {
+		output, _ := cmd.Flags().GetString("output")
+
+		identifier, err := cmd.Flags().GetUint64("identifier")
+		if err != nil {
+			ErrorOutput(
+				err,
+				fmt.Sprintf("Error converting ID to integer: %s", err),
+				output,
+			)
+			return
+		}
+
+		newIP := ""
+
+		if len(args) == 0 {
+			ErrorOutput(
+				fmt.Errorf("missing IP address"),
+				"IP address parameter is required",
+				output,
+			)
+			return
+		}
+
+		newIP = args[0]
+		if _, err := netip.ParseAddr(newIP); err != nil {
+			ErrorOutput(
+				err,
+				fmt.Sprintf("Invalid IP address: %s", newIP),
+				output,
+			)
+			return
+		}
+
+		ctx, client, conn, cancel := newHeadscaleCLIWithConfig()
+		defer cancel()
+		defer conn.Close()
+
+		request := &v1.UpdateIPAddressRequest{
+			NodeId: identifier,
+			NewIp:  newIP,
+		}
+
+		response, err := client.ChangeIPAddress(ctx, request)
+		if err != nil {
+			ErrorOutput(
+				err,
+				fmt.Sprintf("Cannot update node IP: %s", status.Convert(err).Message()),
+				output,
+			)
+			return
+		}
+
+		SuccessOutput(response.GetNode(), fmt.Sprintf("Node %d IP updated to %s", identifier, newIP), output)
+	},
 }
 
 var nodeCmd = &cobra.Command{

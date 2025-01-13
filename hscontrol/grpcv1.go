@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 	"sort"
 	"strings"
@@ -868,6 +869,49 @@ func (api headscaleV1APIServer) DebugCreateNode(
 	)
 
 	return &v1.DebugCreateNodeResponse{Node: newNode.Node.Proto()}, nil
+}
+
+func (api headscaleV1APIServer) ChangeIPAddress(ctx context.Context, req *v1.UpdateIPAddressRequest) (*v1.UpdateIPAddressResponse, error) {
+
+	var (
+		IP  netip.Addr
+		err error
+	)
+
+	if IP, err = netip.ParseAddr(req.GetNewIp()); err != nil {
+		return nil, err
+	}
+
+	if existNode, _ := api.h.db.GetNodeByIP(IP); existNode != nil {
+		return nil, fmt.Errorf("the device where the IP:[%s] is located is online and modification is not allowed", IP.String())
+	}
+
+	if node, err := api.h.db.GetNodeByID(types.NodeID(req.NodeId)); node != nil {
+		var newNode *types.Node
+
+		if changed := api.h.ipAlloc.UpdateUsedIP(node, IP); !changed {
+			return nil, fmt.Errorf("prefix error")
+		}
+
+		if newNode, err = api.h.db.UpdateNodeIP(node, IP); err != nil {
+			return nil, err
+		}
+
+		ctx := types.NotifyCtx(context.Background(), "update-IP", node.Hostname)
+		api.h.nodeNotifier.NotifyWithIgnore(ctx, types.StateUpdate{
+			Type:        types.StatePeerChanged,
+			ChangeNodes: []types.NodeID{node.ID},
+			Message:     "IP address updated",
+		}, node.ID)
+
+		return &v1.UpdateIPAddressResponse{
+			Node: newNode.Proto(),
+		}, nil
+
+	} else {
+		return nil, err
+	}
+
 }
 
 func (api headscaleV1APIServer) mustEmbedUnimplementedHeadscaleServiceServer() {}

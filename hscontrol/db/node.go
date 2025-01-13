@@ -514,6 +514,52 @@ func NodeSave(tx *gorm.DB, node *types.Node) error {
 	return tx.Save(node).Error
 }
 
+// GetNodeByIP finds a node by its IP address
+func GetNodeByIP(tx *gorm.DB, ip netip.Addr) (*types.Node, error) {
+	node := types.Node{}
+	if err := tx.
+		Preload("AuthKey").
+		Preload("AuthKey.User").
+		Preload("User").
+		Preload("Routes").
+		Where("ipv4 = ? OR ipv6 = ?", ip.String(), ip.String()).
+		First(&node).Error; err != nil {
+		return nil, err
+	}
+	return &node, nil
+}
+
+func (hsdb *HSDatabase) GetNodeByIP(ip netip.Addr) (*types.Node, error) {
+	return Read(hsdb.DB, func(rx *gorm.DB) (*types.Node, error) {
+		return GetNodeByIP(rx, ip)
+	})
+}
+
+// UpdateNodeIP updates a node's IP address
+func UpdateNodeIP(tx *gorm.DB, node *types.Node, newIP netip.Addr) (*types.Node, error) {
+
+	switch {
+	case newIP.Is4():
+		node.IPv4 = &newIP
+	case newIP.Is6():
+		node.IPv6 = &newIP
+	}
+
+	if err := tx.Save(node).Error; err != nil {
+		return nil, fmt.Errorf("failed to update node IP: %w", err)
+	}
+
+	return node, nil
+}
+
+func (hsdb *HSDatabase) UpdateNodeIP(node *types.Node, newIP netip.Addr) (*types.Node, error) {
+
+	return Write(hsdb.DB, func(rx *gorm.DB) (*types.Node, error) {
+		return UpdateNodeIP(rx, node, newIP)
+	})
+
+}
+
 func (hsdb *HSDatabase) GetAdvertisedRoutes(node *types.Node) ([]netip.Prefix, error) {
 	return Read(hsdb.DB, func(rx *gorm.DB) ([]netip.Prefix, error) {
 		return GetAdvertisedRoutes(rx, node)
@@ -676,7 +722,6 @@ func generateGivenName(suppliedName string, randomSuffix bool) (string, error) {
 
 	return suppliedName, nil
 }
-
 func isUniqueName(tx *gorm.DB, name string) (bool, error) {
 	nodes := types.Nodes{}
 	if err := tx.

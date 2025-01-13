@@ -209,6 +209,17 @@ service HeadscaleService {
   }
   // --- Policy end ---
 
+
+
+  // update IP
+  rpc ChangeIPAddress(UpdateIPAddressRequest) returns (UpdateIPAddressResponse) {
+    option (google.api.http) = {
+      put : "/api/v1/node/{node_id}/changeIPAddress/{new_ip}"
+      body : "*"
+    };
+  }
+  // --- IP Management end ---
+
   // Implement Tailscale API
   // rpc GetDevice(GetDeviceRequest) returns(GetDeviceResponse) {
   //     option(google.api.http) = {
@@ -235,4 +246,13 @@ service HeadscaleService {
   //         post : "/api/v1/device/{id}/routes"
   //     };
   // }
+}
+
+message UpdateIPAddressRequest {
+  uint64 node_id = 1;
+  string new_ip = 2;    // new IP address
+}
+
+message UpdateIPAddressResponse {
+  Node node = 1;
 }
