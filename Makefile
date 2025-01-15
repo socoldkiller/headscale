@@ -14,8 +14,7 @@ endif
 # PROTO_SOURCES = $(wildcard **/*.proto)
 GO_SOURCES = $(call rwildcard,,*.go)
 PROTO_SOURCES = $(call rwildcard,,*.proto)
-
-
+TARGET_DIR = headscale-ui
 build:
 	nix build
 
@@ -62,3 +61,12 @@ compress: build
 generate:
 	rm -rf gen
 	buf generate proto
+
+frontend:
+	@if not [ -d "$(TARGET_DIR)" ]; then \
+		git clone https://github.com/gurucomputing/headscale-ui.git "$(TARGET_DIR)"; \
+	fi
+	-rm -r hscontrol/build
+	bun install --cwd headscale-ui
+	bun run --cwd headscale-ui build
+	mv headscale-ui/build hscontrol

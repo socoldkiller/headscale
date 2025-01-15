@@ -97,6 +97,8 @@ type Config struct {
 	Policy PolicyConfig
 
 	Tuning Tuning
+
+	Frontend FrontendConfig
 }
 
 type DNSConfig struct {
@@ -220,6 +222,12 @@ type PolicyConfig struct {
 	Mode PolicyMode
 }
 
+type FrontendConfig struct {
+	Enabled bool
+	URL     string
+	Path    string
+}
+
 func (p *PolicyConfig) IsEmpty() bool {
 	return p.Mode == PolicyModeFile && p.Path == ""
 }
@@ -333,6 +341,8 @@ func LoadConfig(path string, isFile bool) error {
 	viper.SetDefault("tuning.node_mapsession_buffered_chan_size", 30)
 
 	viper.SetDefault("prefixes.allocation", string(IPAllocationStrategySequential))
+
+	viper.SetDefault("frontend.enabled", false)
 
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("fatal error reading config file: %w", err)
@@ -990,6 +1000,12 @@ func LoadServerConfig() (*Config, error) {
 			NodeMapSessionBufferedChanSize: viper.GetInt(
 				"tuning.node_mapsession_buffered_chan_size",
 			),
+		},
+
+		Frontend: FrontendConfig{
+			Enabled: viper.GetBool("frontend.enabled"),
+			URL:     viper.GetString("frontend.url"),
+			Path:    viper.GetString("frontend.path"),
 		},
 	}, nil
 }

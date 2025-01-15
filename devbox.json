@@ -8,7 +8,9 @@
       "platforms": ["x86_64-darwin", "aarch64-darwin"]
     },
     "buf":           "1.48.0",
-    "protoc-gen-go": "1.35.2"
+    "protoc-gen-go": "1.35.2",
+    "bun":           "1.1.42",
+    "nodejs":        "18.8.0"
   },
   "shell": {
     "init_hook": [

@@ -490,7 +490,14 @@ func (h *Headscale) createRouter(grpcMux *grpcRuntime.ServeMux) *mux.Router {
 	apiRouter.Use(h.httpAuthenticationMiddleware)
 	apiRouter.PathPrefix("/v1/").HandlerFunc(grpcMux.ServeHTTP)
 
-	router.PathPrefix("/").HandlerFunc(notFoundHandler)
+	if h.cfg.Frontend.Enabled {
+		if path := h.cfg.Frontend.Path; path != "" {
+			router.PathPrefix("/").Handler(SvelteKitHandler("/"))
+		}
+
+	} else {
+		router.PathPrefix("/").HandlerFunc(notFoundHandler)
+	}
 
 	return router
 }
