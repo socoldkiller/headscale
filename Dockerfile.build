@@ -1,0 +1,29 @@
+FROM alpine:latest
+
+# Install system dependencies
+RUN apk update && apk add --no-cache \
+    bash \
+    curl \
+    git \
+    go~=1.23 \
+    gcc \
+    musl-dev \
+    nodejs \
+    docker \
+    make
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mv /root/.bun/bin/bun /usr/local/bin/bun
+
+# Set up Go environment
+ENV GOPATH /go
+ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && \
+    chmod -R 777 "$GOPATH"
+
+# Pre-compile Go dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+WORKDIR /workspace

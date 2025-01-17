@@ -1,0 +1,54 @@
+name: Build Dev
+
+on:
+  push:
+    branches:
+      - dev
+      - CI
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-$${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on:  ubuntu-latest
+    container:
+      image: ghcr.io/socoldkiller/headscale-build:dev
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{secrets.GITHUB_TOKEN}}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build frontend
+        run: |
+          git clone https://github.com/socoldkiller/headscale-ui.git
+          cd headscale-ui
+          git checkout dev
+          bun install
+          bun run build
+          cd ..
+          cp -r headscale-ui/build hscontrol
+
+      - name: Build binary
+        run: |
+          go build -ldflags="-s -w" -o headscale ./cmd/headscale
+          
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build docker image
+        run: |
+          echo "FROM alpine:latest" > Dockerfile
+          echo "COPY headscale /usr/local/bin/headscale" >> Dockerfile
+          echo "ENTRYPOINT [\"headscale\", \"serve\"]" >> Dockerfile          
+          docker build -t ghcr.io/${{ github.repository }}:dev .
+          docker push ghcr.io/${{ github.repository }}:dev
