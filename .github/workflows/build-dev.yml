@@ -22,20 +22,19 @@ jobs:
         username: ${{ github.actor }}
         password: ${{secrets.GITHUB_TOKEN}}
     steps:
-      - uses: actions/checkout@v4
-
       - name: Build frontend
         run: |
-          git clone https://github.com/socoldkiller/headscale-ui.git
-          cd headscale-ui
+          git clone https://github.com/socoldkiller/headscale-ui.git /ui
+          cd /ui
           git checkout dev
           bun install
           bun run build
-          cd ..
-          cp -r headscale-ui/build hscontrol
 
+      - uses: actions/checkout@v4
       - name: Build binary
         run: |
+          git config --global --add safe.directory $PWD
+          cp -r /ui/build hscontrol
           go build -ldflags="-s -w" -o headscale ./cmd/headscale
           
       - name: Login to GHCR
